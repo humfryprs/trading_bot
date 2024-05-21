@@ -40,6 +40,8 @@ def get_tickers_usdt():
             tickers.append(elem['symbol'])
     return tickers
 
+# print(get_tickers_usdt())
+
 # set OHLC dari masing" symbol
 
 def klines(symbol) : 
@@ -50,6 +52,7 @@ def klines(symbol) :
         resp = resp.set_index('Time')
         resp.index = pd.to_datetime(resp.index, unit= 'ms')
         resp = resp.astype(float)
+        # print('Hasil Response klines ', resp)
         return resp
     except ClientError as error:
         print(
@@ -65,7 +68,7 @@ def set_leverage(symbol, level):
         response = client.change_leverage(
             symbol=symbol, leverage=level, recvWindow=6000
         )
-        print(response)
+        print('Hasil Response set_leverage ',response)
     except ClientError as error:
         print(
             "Found error. status: {}, error code: {}, error message: {}".format(
@@ -78,7 +81,7 @@ def set_mode(symbol, type):
         response = client.change_margin_type(
             symbol=symbol, marginType=type, recvWindow=6000
         )
-        print(response)
+        print('Hasil Response set_mode ',response)
     except ClientError as error:
         print(
             "Found error. status: {}, error code: {}, error message: {}".format(
@@ -88,18 +91,24 @@ def set_mode(symbol, type):
 
 def get_price_percision(symbol):
     resp = client.exchange_info()['symbols']
+    # print(resp)
     for elem in resp:
         if elem['symbol'] == symbol:
             return elem['pricePrecision']
         
+print('price ', get_price_percision('BTCUSDT'))
+        
 def get_qty_percision(symbol):
     resp = client.exchange_info()['symbols']
+    # print(resp)
     for elem in resp:
         if elem['symbol'] == symbol:
             return elem['quantityPrecision']
         
+print('qty ', get_qty_percision('BTCUSDT'))
+
 def open_order(symbol, side):
-    price = float(client.ticker_price(symbol)['Price'])
+    price = float(client.ticker_price(symbol)['price'])
     qty_percision = get_qty_percision(symbol)
     price_percision = get_price_percision(symbol)
     qty = round(VOLUME/price, qty_percision)
@@ -107,16 +116,15 @@ def open_order(symbol, side):
         try:
             resp1 = client.new_order(symbol=symbol, side='BUY', type='LIMIT', quantity=qty, timeInForce='GTC', price=price)
             print(symbol, side, "placing order")
-            print(resp1)
+            print('Entry Price ',resp1)
             sleep(2)
             sl_price = round(price-price*SL, price_percision)
             resp2 = client.new_order(symbol=symbol, side='SELL', type='STOP_MARKET', quantity=qty, timeInForce='GTC', stopPrice=sl_price)
-            print(resp2)
+            print('SL Price ', resp2)
             sleep(2)
             tp_price = round(price+price*TP, price_percision)
             resp3 = client.new_order(symbol=symbol, side='SELL', type='TAKE_PROFIT_MARKET', quantity=qty, timeInForce='GTC', stopPrice=tp_price)
-            print(resp3)
-
+            print('TP Price ',resp3)
         except ClientError as error:
             print(
                 "Found error. status: {}, error code: {}, error message: {}".format(
@@ -128,15 +136,15 @@ def open_order(symbol, side):
         try:
             resp1 = client.new_order(symbol=symbol, side='SELL', type='LIMIT', quantity=qty, timeInForce='GTC', price=price)
             print(symbol, side, "placing order")
-            print(resp1)
+            print('Entry Price ',resp1)
             sleep(2)
             sl_price = round(price+price*SL, price_percision)
             resp2 = client.new_order(symbol=symbol, side='BUY', type='STOP_MARKET', quantity=qty, timeInForce='GTC', stopPrice=sl_price)
-            print(resp2)
+            print('SL Price ',resp2)
             sleep(2)
             tp_price = round(price-price*TP, price_percision)
             resp3 = client.new_order(symbol=symbol, side='BUY', type='TAKE_PROFIT_MARKET', quantity=qty, timeInForce='GTC', stopPrice=tp_price)
-            print(resp3)
+            print('TP Price ',resp3)
 
         except ClientError as error:
             print(
@@ -148,11 +156,11 @@ def open_order(symbol, side):
 def check_positions():
     try:
         resp = client.get_position_risk()
-        POSITIONS = 0
+        positions = 0
         for elem in resp:
             if float(elem['positionAmt']) != 0:
-                POSITIONS += 1
-        return POSITIONS
+                positions += 1
+        return positions
     except ClientError as error:
         print(
             "Found error. status: {}, error code: {}, error message: {}".format(
@@ -187,36 +195,39 @@ order = False
 symbol = ''
 symbols = get_tickers_usdt()
 
-while True:
-    POSITIONS = check_positions()
-    print(f'You have {POSITIONS} opened positions')
-    if POSITIONS == 0:
-        order = False
-        if symbol != '':
-            close_open_orders(symbol)
+#looping scriptnya disini
+
+# while True:
+    # positions = check_positions()
+    # print(f'You have {positions} opened positions')
+    # if positions == 0:
+    #     order = False
+    #     if symbol != '':
+    #         close_open_orders(symbol)
             
-    if order == False:
-        for elem in symbols:
-            signal = check_ema200_50(elem)
-            if signal == 'up':
-                print('Found BUY signal for', elem)
-                set_mode(elem, type)
-                sleep(1)
-                set_leverage(elem, LEVERAGE)
-                sleep(1)
-                open_order(elem, 'buy')
-                symbol = elem
-                order = True
-                break
-            if signal == 'down':
-                print('Found SELL signal for', elem)
-                set_mode(elem, type)
-                sleep(1)
-                set_leverage(elem, LEVERAGE)
-                sleep(1)
-                open_order(elem, 'sell')
-                symbol = elem
-                order = True
-                break
-    print('Waiting 60 sec')
-    sleep(60)
+    # if order == False:
+    #     for elem in symbols:
+    #         signal = check_ema200_50(elem)
+    #         if signal == 'up':
+    #             print('Found BUY signal for', elem)
+    #             set_mode(elem, type)
+    #             sleep(1)
+    #             set_leverage(elem, LEVERAGE)
+    #             sleep(1)
+    #             open_order(elem, 'buy')
+    #             symbol = elem
+    #             order = True
+    #             break
+    #         if signal == 'down':
+    #             print('Found SELL signal for', elem)
+    #             set_mode(elem, type)
+    #             sleep(1)
+    #             set_leverage(elem, LEVERAGE)
+    #             sleep(1)
+    #             open_order(elem, 'sell')
+    #             symbol = elem
+    #             order = True
+    #             break
+    # exit()
+    # print('Waiting 60 sec')
+    # sleep(60)
