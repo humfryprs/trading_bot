@@ -8,7 +8,7 @@ from binance.error import ClientError
 client = UMFutures(key= API,secret=SECRET)
 
 TP = 0.01 #close 1%
-SL = 0.01 #close 1%
+SL = 0.005 #close 0.5%
 VOLUME = 50 
 LEVERAGE = 10
 type = 'ISOLATED'
@@ -46,7 +46,7 @@ def get_tickers_usdt():
 
 def klines(symbol) : 
     try:
-        resp = pd.DataFrame(client.klines(symbol, '1h'))
+        resp = pd.DataFrame(client.klines(symbol, '1m'))
         resp = resp.iloc[:,:6]
         resp.columns = ['Time', 'Open', 'High', 'Low', 'Close', 'Volume']
         resp = resp.set_index('Time')
@@ -56,12 +56,14 @@ def klines(symbol) :
         return resp
     except ClientError as error:
         print(
-        "Found error. status: {}, error code: {}, error message: {}".format(
+        "Found error in klines. status: {}, error code: {}, error message: {}".format(
             error.status_code, error.error_code, error.error_message
         )
     )
         
-# set OHLC dari masing" symbol
+# print(klines("XRPUSDT"))
+        
+# set leverage utk symbol tertentu pas mau trade
         
 def set_leverage(symbol, level):
     try:
@@ -71,10 +73,14 @@ def set_leverage(symbol, level):
         print('Hasil Response set_leverage ',response)
     except ClientError as error:
         print(
-            "Found error. status: {}, error code: {}, error message: {}".format(
+            "Found error in set_leverage. status: {}, error code: {}, error message: {}".format(
                 error.status_code, error.error_code, error.error_message
             )
         )
+        
+# print(set_leverage("XRPUSDT",10))
+
+# Set mode ISOLATED, CROSSED
     
 def set_mode(symbol, type):
     try:
@@ -84,11 +90,12 @@ def set_mode(symbol, type):
         print('Hasil Response set_mode ',response)
     except ClientError as error:
         print(
-            "Found error. status: {}, error code: {}, error message: {}".format(
+            "Found error in Set_Mode. status: {}, error code: {}, error message: {}".format(
                 error.status_code, error.error_code, error.error_message
             )
         )
 
+#pengecekan jumlah angka dibelakang koma
 def get_price_percision(symbol):
     resp = client.exchange_info()['symbols']
     # print(resp)
@@ -96,7 +103,9 @@ def get_price_percision(symbol):
         if elem['symbol'] == symbol:
             return elem['pricePrecision']
         
-print('price ', get_price_percision('BTCUSDT'))
+# print('price ', get_price_percision('BTCUSDT'))
+
+# Min quantyty di blkng koma utk kita buy
         
 def get_qty_percision(symbol):
     resp = client.exchange_info()['symbols']
@@ -105,13 +114,16 @@ def get_qty_percision(symbol):
         if elem['symbol'] == symbol:
             return elem['quantityPrecision']
         
-print('qty ', get_qty_percision('BTCUSDT'))
+# print('qty ', get_qty_percision('BTCUSDT'))
+
+
+#
 
 def open_order(symbol, side):
     price = float(client.ticker_price(symbol)['price'])
     qty_percision = get_qty_percision(symbol)
     price_percision = get_price_percision(symbol)
-    qty = round(VOLUME/price, qty_percision)
+    qty = round(VOLUME/price, qty_percision) #utk ngitung jumlah yg kita mau, disesuain sama minimum desimal buy yg bisa dibeli
     if side == 'buy':
         try:
             resp1 = client.new_order(symbol=symbol, side='BUY', type='LIMIT', quantity=qty, timeInForce='GTC', price=price)
@@ -127,10 +139,11 @@ def open_order(symbol, side):
             print('TP Price ',resp3)
         except ClientError as error:
             print(
-                "Found error. status: {}, error code: {}, error message: {}".format(
+                "Found error in Open_Order_buy. status: {}, error code: {}, error message: {}".format(
                     error.status_code, error.error_code, error.error_message
                 )
             )
+        # return orderId
 
     if side == 'sell':
         try:
@@ -148,10 +161,11 @@ def open_order(symbol, side):
 
         except ClientError as error:
             print(
-                "Found error. status: {}, error code: {}, error message: {}".format(
+                "Found error in Open_Order_sell. status: {}, error code: {}, error message: {}".format(
                     error.status_code, error.error_code, error.error_message
                 )
             )
+        # return orderId
 
 def check_positions():
     try:
@@ -163,10 +177,22 @@ def check_positions():
         return positions
     except ClientError as error:
         print(
-            "Found error. status: {}, error code: {}, error message: {}".format(
+            "Found error in Check_position. status: {}, error code: {}, error message: {}".format(
                 error.status_code, error.error_code, error.error_message
             )
         )
+        
+# def get_orders(symbol):
+#     try:
+#         response = client.get_all_orders(symbol="symbol", recvWindow=2000)
+#         print(response)
+#     except ClientError as error:
+#         print(
+#             "Found error. status: {}, error code: {}, error message: {}".format(
+#                 error.status_code, error.error_code, error.error_message
+#             )
+#         )
+        
         
 def close_open_orders(symbol):
     try:
@@ -179,13 +205,64 @@ def close_open_orders(symbol):
             )
         )
         
-def check_ema200_50(symbol):
+
+# def close_order():
+#     try:
+#         response = client.cancel_order(symbol='XRPUSDT', orderId=57091182056, recvWindow=2000)
+#         print(response)
+#     except ClientError as error:
+#         print(
+#             "Found error. status: {}, error code: {}, error message: {}".format(
+#                 error.status_code, error.error_code, error.error_message
+#             )
+#         )    
+        
+# def a(symbol):        
+#     try:
+#         response1=client.new_order(symbol=symbol, side='BUY', type='LIMIT', quantity=10, timeInForce='GTC', price=0.54)
+#         print('Get Order: ',response1)
+#         orderId = response1.get('orderId')
+#         ordered_symbol=str(response1.get('symbol'))
+#         print('orderId: ', orderId)
+        
+#         return orderId, ordered_symbol
+#     except ClientError as error:
+#         print(
+#         "Found error. status: {}, error code: {}, error message: {}".format(
+#             error.status_code, error.error_code, error.error_message
+#         )
+#     )    
+        
+# symbol='XRPUSDT' 
+# a(symbol)
+# orderId, ordered_symbol = a(symbol)
+# print('aasdas', ordered_symbol)
+
+# sleep (3)        
+# print('close : ', close_order())         
+
+# response = client.balance(recvWindow=6000)
+#         for elem in response:
+#             if elem['asset']=='USDT':
+#                 return float(elem['balance'])
+        
+        
+# print('Price', float(client.ticker_price('BTCUSDT')['price']))
+# kl = klines('BTCUSDT')
+# sma50 = ta.trend.sma_indicator(kl.Close, window=50)
+# sma200 = ta.trend.sma_indicator(kl.Close, window=200)
+# print(sma50.iloc[-1])
+# print(sma200.iloc[-1])
+
+#simple indicator
+        
+def check_sma200_50(symbol):
     kl = klines(symbol)
-    ema200 = ta.trend.ema_indicator(kl.Close, window=100)
-    ema50 = ta.trend.ema_indicator(kl.Close, window=50)
-    if ema50.iloc[-3] < ema200.iloc[-3] and ema50.iloc[-2] < ema200.iloc[-2] and ema50.iloc[-1] > ema200.iloc[-1]:
+    sma50 = ta.trend.sma_indicator(kl.Close, window=50)
+    sma200 = ta.trend.sma_indicator(kl.Close, window=200)
+    if sma50.iloc[-3] < sma200.iloc[-3] and sma50.iloc[-2] < sma200.iloc[-2] and sma50.iloc[-1] > sma200.iloc[-1]: #SMA 50 breakup SMA 200
         return 'up'
-    if ema50.iloc[-3] > ema200.iloc[-3] and ema50.iloc[-2] > ema200.iloc[-2] and ema50.iloc[-1] < ema200.iloc[-1]:
+    if sma50.iloc[-3] > sma200.iloc[-3] and sma50.iloc[-2] > sma200.iloc[-2] and sma50.iloc[-1] < sma200.iloc[-1]: #SMA 50 breakdown SMA 200
         return 'down'
     else:
         return 'none'
@@ -197,37 +274,39 @@ symbols = get_tickers_usdt()
 
 #looping scriptnya disini
 
-# while True:
-    # positions = check_positions()
-    # print(f'You have {positions} opened positions')
-    # if positions == 0:
-    #     order = False
-    #     if symbol != '':
-    #         close_open_orders(symbol)
+while True:
+    positions = check_positions()
+    print(f'You have {positions} opened positions')
+    if positions == 0:
+        order = False
+        if symbol != '': #jika symbolnya tidak kosong
+            close_open_orders(symbol)
             
-    # if order == False:
-    #     for elem in symbols:
-    #         signal = check_ema200_50(elem)
-    #         if signal == 'up':
-    #             print('Found BUY signal for', elem)
-    #             set_mode(elem, type)
-    #             sleep(1)
-    #             set_leverage(elem, LEVERAGE)
-    #             sleep(1)
-    #             open_order(elem, 'buy')
-    #             symbol = elem
-    #             order = True
-    #             break
-    #         if signal == 'down':
-    #             print('Found SELL signal for', elem)
-    #             set_mode(elem, type)
-    #             sleep(1)
-    #             set_leverage(elem, LEVERAGE)
-    #             sleep(1)
-    #             open_order(elem, 'sell')
-    #             symbol = elem
-    #             order = True
-    #             break
+    if order == False:
+        for elem in symbols:
+            signal = check_sma200_50(elem)
+            if signal == 'up':
+                print('Found BUY signal for', elem)
+                set_mode(elem, type)
+                sleep(1)
+                set_leverage(elem, LEVERAGE)
+                sleep(1)
+                open_order(elem, 'buy')
+                symbol = elem
+                order = True
+                break
+            if signal == 'down':
+                print('Found SELL signal for', elem)
+                set_mode(elem, type)
+                sleep(1)
+                set_leverage(elem, LEVERAGE)
+                sleep(1)
+                open_order(elem, 'sell')
+                symbol = elem
+                order = True
+                break
     # exit()
-    # print('Waiting 60 sec')
-    # sleep(60)
+    
+    #looping ngecek terus ada pair yg match indicator kg
+    print('Waiting 1 min')
+    sleep(60)
